@@ -21,6 +21,7 @@ export function normalizeActivityDependencies(
   activity: Pick<SchedulerActivity, "dependencies" | "predecessors">
 ): SchedulerDependency[] {
   const seen = new Set<string>();
+  const dependencyByActivityId = new Set<string>();
   const normalized: SchedulerDependency[] = [];
 
   const append = (dep: SchedulerDependency) => {
@@ -28,6 +29,7 @@ export function normalizeActivityDependencies(
     const key = `${dep.activityId}|${dep.type}|${dep.lagDays ?? 0}`;
     if (seen.has(key)) return;
     seen.add(key);
+    dependencyByActivityId.add(dep.activityId);
     normalized.push(dep);
   };
 
@@ -49,6 +51,9 @@ export function normalizeActivityDependencies(
       if (typeof predId !== "string") return;
       const activityId = predId.trim();
       if (!activityId) return;
+      // If a typed dependency already exists for this predecessor,
+      // do not add an extra default FS link.
+      if (dependencyByActivityId.has(activityId)) return;
       append({
         activityId,
         type: "FS",
